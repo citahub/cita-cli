@@ -39,6 +39,11 @@ const CMD_PATTERN: &str = r"\$\{\s*(?P<key>\S+)\s*\}";
 
 /// Interactive command line
 pub fn start(url: &str) -> io::Result<()> {
+    if env::var("TERM").map(|s| s == "").unwrap_or(true) {
+        eprintln!("Current term may not support try: TERM=xterm-color");
+        env::set_var("TERM", "xterm-color");
+    }
+
     let re = Regex::new(CMD_PATTERN).unwrap();
     let interface = Arc::new(Interface::new("cita-cli")?);
     let mut config = GlobalConfig::new(url.to_string());
