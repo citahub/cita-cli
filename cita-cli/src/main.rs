@@ -2,6 +2,7 @@ extern crate ansi_term;
 extern crate atty;
 extern crate cita_tool;
 extern crate colored;
+extern crate term;
 #[macro_use]
 extern crate clap;
 extern crate dotenv;

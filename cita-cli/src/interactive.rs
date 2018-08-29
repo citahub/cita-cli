@@ -17,6 +17,7 @@ use linefeed::{Interface, Prompter, ReadResult};
 use regex::{Captures, Regex};
 use serde_json;
 use shell_words;
+use term::terminfo::searcher::get_dbpath_for_term;
 
 use cita_tool::JsonRpcResponse;
 use cli::{
@@ -39,8 +40,11 @@ const CMD_PATTERN: &str = r"\$\{\s*(?P<key>\S+)\s*\}";
 
 /// Interactive command line
 pub fn start(url: &str) -> io::Result<()> {
-    if env::var("TERM").map(|s| s == "").unwrap_or(true) {
-        eprintln!("Current term may not support try: TERM=xterm-color");
+    if env::var("TERM")
+        .map(|s| get_dbpath_for_term(s.as_str()).is_none())
+        .unwrap_or(true)
+    {
+        eprintln!("Invalid TERM, try TERM=xterm-color");
         env::set_var("TERM", "xterm-color");
     }
 
