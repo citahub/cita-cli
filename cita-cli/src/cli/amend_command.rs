@@ -4,8 +4,8 @@ use cita_tool::client::basic::{AmendExt, Client};
 use cita_tool::remove_0x;
 
 use cli::{
-    encryption, get_url, h256_validator, parse_address, parse_privkey, parse_u256, parse_u64,
-    privkey_validator,
+    encryption, get_url, h256_validator, parse_address, parse_height, parse_privkey, parse_u256,
+    parse_u64, privkey_validator,
 };
 use interactive::{set_output, GlobalConfig};
 use printer::Printer;
@@ -23,8 +23,8 @@ pub fn amend_command() -> App<'static, 'static> {
                 Ok(_) => Ok(()),
                 Err(err) => Err(format!("{:?}", err)),
             }).help("The chain_id of transaction"),
-        Arg::with_name("admin-private-key")
-            .long("admin-private-key")
+        Arg::with_name("admin-private")
+            .long("admin-private")
             .takes_value(true)
             .required(true)
             .validator(|privkey| privkey_validator(privkey.as_ref()).map(|_| ()))
@@ -78,7 +78,7 @@ pub fn amend_command() -> App<'static, 'static> {
                 ).group(ArgGroup::with_name("the-abi").args(&["content", "path"]))
                 .args(&common_args),
         ).subcommand(
-            SubCommand::with_name("kv-h256")
+            SubCommand::with_name("set-h256")
                 .about("Amend H256 Key,Value pair")
                 .arg(
                     Arg::with_name("address")
@@ -99,7 +99,7 @@ pub fn amend_command() -> App<'static, 'static> {
                 ).args(&common_args),
         ).subcommand(
             SubCommand::with_name("get-h256")
-                .about("Get H256 Value, only write to log")
+                .about("Get H256 Value")
                 .arg(
                     Arg::with_name("address")
                         .long("address")
@@ -114,7 +114,14 @@ pub fn amend_command() -> App<'static, 'static> {
                         .takes_value(true)
                         .validator(|key| h256_validator(key.as_str()))
                         .help("The key of pair"),
-                ).args(&common_args),
+                ).arg(
+                    Arg::with_name("height")
+                        .long("height")
+                        .default_value("latest")
+                        .validator(|s| parse_height(s.as_str()))
+                        .takes_value(true)
+                        .help("The height of chain, hex string or tag 'latest'"),
+                ),
         ).subcommand(
             SubCommand::with_name("balance")
                 .about("Amend account balance")
@@ -151,7 +158,10 @@ pub fn amend_processor(
     let result = match sub_matches.subcommand() {
         ("code", Some(m)) => {
             let encryption = encryption(m, config);
-            if let Some(private_key) = m.value_of("admin-private-key") {
+            if let Some(chain_id) = m.value_of("chain-id").map(|s| s.parse::<u32>().unwrap()) {
+                client.set_chain_id(chain_id);
+            }
+            if let Some(private_key) = m.value_of("admin-private") {
                 client.set_private_key(&parse_privkey(private_key, encryption)?);
             }
             let address = m.value_of("address").unwrap();
@@ -161,7 +171,10 @@ pub fn amend_processor(
         }
         ("abi", Some(m)) => {
             let encryption = encryption(m, config);
-            if let Some(private_key) = m.value_of("admin-private-key") {
+            if let Some(chain_id) = m.value_of("chain-id").map(|s| s.parse::<u32>().unwrap()) {
+                client.set_chain_id(chain_id);
+            }
+            if let Some(private_key) = m.value_of("admin-private") {
                 client.set_private_key(&parse_privkey(private_key, encryption)?);
             }
             let content = match m.value_of("content") {
@@ -179,9 +192,12 @@ pub fn amend_processor(
             let quota = m.value_of("quota").map(|s| parse_u64(s).unwrap());
             client.amend_abi(address, content, quota)
         }
-        ("kv-h256", Some(m)) => {
+        ("set-h256", Some(m)) => {
             let encryption = encryption(m, config);
-            if let Some(private_key) = m.value_of("admin-private-key") {
+            if let Some(chain_id) = m.value_of("chain-id").map(|s| s.parse::<u32>().unwrap()) {
+                client.set_chain_id(chain_id);
+            }
+            if let Some(private_key) = m.value_of("admin-private") {
                 client.set_private_key(&parse_privkey(private_key, encryption)?);
             }
             let address = m.value_of("address").unwrap();
@@ -192,21 +208,21 @@ pub fn amend_processor(
                 .collect::<Vec<&str>>()
                 .join("");
             let quota = m.value_of("quota").map(|s| parse_u64(s).unwrap());
-            client.amend_h256kv(address, &h256_kv, quota)
+            client.amend_set_h256kv(address, &h256_kv, quota)
         }
         ("get-h256", Some(m)) => {
             let encryption = encryption(m, config);
-            if let Some(private_key) = m.value_of("admin-private-key") {
-                client.set_private_key(&parse_privkey(private_key, encryption)?);
-            }
             let address = m.value_of("address").unwrap();
             let h256_key = m.value_of("key").unwrap();
-            let quota = m.value_of("quota").map(|s| parse_u64(s).unwrap());
-            client.amend_get_h256kv(address, h256_key, quota)
+            let height = m.value_of("height").unwrap();
+            client.amend_get_h256kv(address, h256_key, height)
         }
         ("balance", Some(m)) => {
             let encryption = encryption(m, config);
-            if let Some(private_key) = m.value_of("admin-private-key") {
+            if let Some(chain_id) = m.value_of("chain-id").map(|s| s.parse::<u32>().unwrap()) {
+                client.set_chain_id(chain_id);
+            }
+            if let Some(private_key) = m.value_of("admin-private") {
                 client.set_private_key(&parse_privkey(private_key, encryption)?);
             }
             let address = m.value_of("address").unwrap();

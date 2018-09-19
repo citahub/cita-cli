@@ -1,6 +1,5 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::str::FromStr;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::{str, u64};
 
@@ -836,17 +835,16 @@ pub trait AmendExt: ClientExt<JsonRpcResponse, ToolError> {
     /// Amend contract ABI
     fn amend_abi(&mut self, address: &str, content: String, quota: Option<u64>) -> Self::RpcResult;
 
-    /// Amend H256KV
-    fn amend_h256kv(&mut self, address: &str, h256_kv: &str, quota: Option<u64>)
-        -> Self::RpcResult;
-
-    /// Amend get H256KV
-    fn amend_get_h256kv(
+    /// Amend set H256KV
+    fn amend_set_h256kv(
         &mut self,
         address: &str,
-        h256_key: &str,
+        h256_kv: &str,
         quota: Option<u64>,
     ) -> Self::RpcResult;
+
+    /// Amend get H256KV
+    fn amend_get_h256kv(&mut self, address: &str, h256_key: &str, height: &str) -> Self::RpcResult;
 
     /// Amend account balance
     fn amend_balance(
@@ -861,58 +859,45 @@ impl AmendExt for Client {
     fn amend_code(&mut self, address: &str, content: &str, quota: Option<u64>) -> Self::RpcResult {
         let address = remove_0x(address);
         let content = remove_0x(content);
-        let data = format!("0x{}{}", address, content);
+        let data = format!("0x{}{}{}", remove_0x(AMEND_CODE), address, content);
         let tx_options = TransactionOptions::new()
             .set_code(&data)
             .set_address(AMEND_ADDRESS)
-            .set_quota(quota)
-            .set_value(Some(U256::from_str(remove_0x(AMEND_CODE)).unwrap()));
+            .set_quota(quota);
         self.send_raw_transaction(tx_options)
     }
 
     fn amend_abi(&mut self, address: &str, content: String, quota: Option<u64>) -> Self::RpcResult {
         let address = remove_0x(address);
         let content_abi = encode_params(&["string".to_owned()], &[content], false)?;
-        let data = format!("0x{}{}", address, content_abi);
+        let data = format!("0x{}{}{}", remove_0x(AMEND_ABI), address, content_abi);
         let tx_options = TransactionOptions::new()
             .set_code(&data)
             .set_address(AMEND_ADDRESS)
-            .set_quota(quota)
-            .set_value(Some(U256::from_str(remove_0x(AMEND_ABI)).unwrap()));
+            .set_quota(quota);
         self.send_raw_transaction(tx_options)
     }
 
-    fn amend_h256kv(
+    fn amend_set_h256kv(
         &mut self,
         address: &str,
         h256_kv: &str,
         quota: Option<u64>,
     ) -> Self::RpcResult {
         let address = remove_0x(address);
-        let data = format!("0x{}{}", address, h256_kv);
+        let data = format!("0x{}{}{}", remove_0x(AMEND_KV_H256), address, h256_kv);
         let tx_options = TransactionOptions::new()
             .set_code(&data)
             .set_address(AMEND_ADDRESS)
-            .set_quota(quota)
-            .set_value(Some(U256::from_str(remove_0x(AMEND_KV_H256)).unwrap()));
+            .set_quota(quota);
         self.send_raw_transaction(tx_options)
     }
 
-    fn amend_get_h256kv(
-        &mut self,
-        address: &str,
-        h256_key: &str,
-        quota: Option<u64>,
-    ) -> Self::RpcResult {
+    fn amend_get_h256kv(&mut self, address: &str, h256_key: &str, height: &str) -> Self::RpcResult {
         let address = remove_0x(address);
         let h256_key = remove_0x(h256_key);
-        let data = format!("0x{}{}", address, h256_key);
-        let tx_options = TransactionOptions::new()
-            .set_code(&data)
-            .set_address(AMEND_ADDRESS)
-            .set_quota(quota)
-            .set_value(Some(U256::from_str(remove_0x(AMEND_GET_KV_H256)).unwrap()));
-        self.send_raw_transaction(tx_options)
+        let data = format!("0x{}{}{}", remove_0x(AMEND_GET_KV_H256), address, h256_key);
+        self.call(None, AMEND_ADDRESS, Some(data.as_str()), height)
     }
 
     fn amend_balance(
@@ -922,12 +907,16 @@ impl AmendExt for Client {
         quota: Option<u64>,
     ) -> Self::RpcResult {
         let address = remove_0x(address);
-        let data = format!("0x{}{:0>64}", address, balance.lower_hex());
+        let data = format!(
+            "0x{}{}{:0>64}",
+            remove_0x(AMEND_BALANCE),
+            address,
+            balance.lower_hex()
+        );
         let tx_options = TransactionOptions::new()
             .set_code(&data)
             .set_address(AMEND_ADDRESS)
-            .set_quota(quota)
-            .set_value(Some(U256::from_str(remove_0x(AMEND_BALANCE)).unwrap()));
+            .set_quota(quota);
         self.send_raw_transaction(tx_options)
     }
 }
