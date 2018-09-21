@@ -73,7 +73,6 @@ pub fn contract_command() -> App<'static, 'static> {
         .long("contract")
         .takes_value(true)
         .required(true)
-        .validator(|address| parse_address(address.as_str()))
         .help("The contract address");
     let function_hash_arg = Arg::with_name("function-hash")
         .long("function-hash")
