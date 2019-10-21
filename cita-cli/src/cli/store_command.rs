@@ -3,9 +3,7 @@ use clap::{App, Arg, ArgGroup, ArgMatches, SubCommand};
 use cita_tool::client::basic::{Client, StoreExt};
 use cita_tool::remove_0x;
 
-use crate::cli::{
-    encryption, get_url, is_hex, key_validator, parse_address, parse_privkey, parse_u64,
-};
+use crate::cli::{encryption, get_url, is_hex, key_validator, parse_privkey, parse_u64};
 use crate::interactive::{set_output, GlobalConfig};
 use crate::printer::Printer;
 
@@ -54,14 +52,6 @@ pub fn store_command() -> App<'static, 'static> {
         .subcommand(
             SubCommand::with_name("abi")
                 .about("Store ABI to: 0xffffffffffffffffffffffffffffffffff010001")
-                .arg(
-                    Arg::with_name("address")
-                        .long("address")
-                        .required(true)
-                        .validator(|address| parse_address(address.as_str()))
-                        .takes_value(true)
-                        .help("The contract address of the ABI"),
-                )
                 .arg(
                     Arg::with_name("content")
                         .long("content")
@@ -117,11 +107,12 @@ pub fn store_processor(
                     abi_content
                 }
             };
-            let address = m.value_of("address").unwrap();
+
+            let address = &remove_0x(&content)[0..40];
             if let Some(private_key) = m.value_of("private-key") {
                 client.set_private_key(&parse_privkey(private_key, encryption)?);
             }
-            client.store_abi(address, content, quota)
+            client.store_abi(address, content.clone(), quota)
         }
         _ => {
             return Err(sub_matches.usage().to_owned());
