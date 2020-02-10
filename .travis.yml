@@ -1,6 +1,7 @@
 language: rust
 rust:
-  - stable
+  - 1.39.0
+  - 1.39.0
 before_script:
   - rustup component add rustfmt-preview
   - rustup component add clippy
