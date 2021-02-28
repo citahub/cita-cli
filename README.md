@@ -46,7 +46,7 @@ $ cargo install --no-default-features --features openssl --path .
 > `rustls` is statically compiled in [release](https://github.com/citahub/cita-cli/releases),
 > and https requests is supported by default.
 
-#### Compile the Linux cross-platform version
+#### Compile the Linux statically-linked binary
 
 - First, install `musl-gcc`, default on `/usr/local/musl`
 
@@ -55,20 +55,22 @@ $ wget https://www.musl-libc.org/releases/musl-1.1.19.tar.gz
 $ tar -xzvf musl-1.1.19.tar.gz
 $ cd musl-1.1.19/
 $ ./configure && make && sudo make install
-$ sudo ln -sf /usr/local/musl/bin/musl-gcc /usr/local/bin/musl-gcc
 ```
 
-- Second, add `x86_64-unknown-linux-musl` toolchain
-
+- Second, add the toolchain, then build
 ```bash
-$ rustup target add x86_64-unknown-linux-musl
+$ cd cita-cli/cita-cli
+
+# for amd64
+$ rustup target add x86_64-unknown-linux-musl  
+$ CC=/usr/local/musl/bin/musl-gcc cargo install --target x86_64-unknown-linux-musl --path .
+
+# for arm64
+$ rustup target add aarch64-unknown-linux-musl 
+$ CC=/usr/local/musl/bin/musl-gcc cargo install --target aarch64-unknown-linux-musl --path .
 ```
 
-- Third, build
-
-```bash
-$ cargo install --target x86_64-unknown-linux-musl --path .
-```
+> Tips: For other platform, see [The rustc book/Platform Support](https://doc.rust-lang.org/nightly/rustc/platform-support.html)
 
 ### Examples
 
